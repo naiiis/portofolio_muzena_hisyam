@@ -36,10 +36,10 @@
   </style>
 </head>
 <body>
-  <h1>📊 Statistik Delay Maskapai dari Surabaya</h1>
+  <h1>Statistik Delay Maskapai dari Surabaya</h1>
 
   <form method="get">
-    <label><b>📅 Bulan:</b></label>
+    <label><b>Bulan:</b></label>
     <select name="bulan" onchange="this.form.submit()">
       <option value="">-- Semua Bulan --</option>
       {% for b in available_months %}
@@ -47,20 +47,20 @@
       {% endfor %}
     </select>
 
-    <label><b>📈 Tampilan:</b></label>
+    <label><b>Tampilan:</b></label>
     <select name="view" onchange="this.form.submit()">
       <option value="harian" {% if view == "harian" %}selected{% endif %}>Harian</option>
       <option value="mingguan" {% if view == "mingguan" %}selected{% endif %}>Mingguan</option>
     </select>
 
-    <label><b>🌐 Jenis Penerbangan:</b></label>
+    <label><b>Jenis Penerbangan:</b></label>
     <select name="jenis" onchange="this.form.submit()">
       <option value="" {% if jenis == "" %}selected{% endif %}>Gabungan</option>
       <option value="domestik" {% if jenis == "domestik" %}selected{% endif %}>Domestik</option>
       <option value="internasional" {% if jenis == "internasional" %}selected{% endif %}>Internasional</option>
     </select>
 
-    <label><b>✈️ Maskapai:</b></label>
+    <label><b>Maskapai:</b></label>
     <select name="icao" onchange="this.form.submit()">
       <option value="">Semua</option>
       {% for icao, nama in available_icaos %}
@@ -68,7 +68,7 @@
       {% endfor %}
     </select>
 
-    <label><b>📍 Tujuan:</b></label>
+    <label><b>Tujuan:</b></label>
     <select name="tujuan" onchange="this.form.submit()">
       <option value="">Semua</option>
       {% for icao, nama in available_destinations %}
@@ -79,24 +79,24 @@
 
   <div class="summary-row">
     <div class="summary-tile" style="background:#d4edda; color:#155724">
-      ✅ Ontime<br>
+       Ontime<br>
       {{ summary_box.ontime.jumlah }} flight<br>
       ({{ summary_box.ontime.persen }}%)
     </div>
     <div class="summary-tile" style="background:#fff3cd; color:#856404">
-      ⏱️ Delay 1<br>
+      Delay 1<br>
       {{ summary_box.delay1.jumlah }} flight<br>
       ({{ summary_box.delay1.persen }}%)
     </div>
     <div class="summary-tile" style="background:#f8d7da; color:#721c24">
-      ❗ Delay 2<br>
+      Delay 2<br>
       {{ summary_box.delay2.jumlah }} flight<br>
       ({{ summary_box.delay2.persen }}%)
     </div>
   </div>
 
-  <h2>📉 Grafik Total Menit Delay</h2>
-  <label for="delay-view-mode"><b>👁️ Tampilan Grafik:</b></label>
+  <h2>Grafik Total Menit Delay</h2>
+  <label for="delay-view-mode"><b>Tampilan Grafik:</b></label>
   <select id="delay-view-mode" onchange="updateDelayChart()">
     <option value="total">Total Semua Maskapai</option>
     <option value="per_maskapai">Per Maskapai</option>
@@ -171,7 +171,7 @@
     });
   </script>
 
-  <h2>📊 Grafik Jumlah Penerbangan per Kategori Delay</h2>
+  <h2>Grafik Jumlah Penerbangan per Kategori Delay</h2>
   <canvas id="chartDelayKategori" height="100"></canvas>
   <script>
     const kategoriLabels = {{ chart_data.keys() | list | tojson }};
@@ -205,7 +205,7 @@
     });
   </script>
 
-  <h2>🧾 Total Delay per Maskapai (Menit)</h2>
+  <h2>Total Delay per Maskapai (Menit)</h2>
   <table>
     <tr><th>Nama Maskapai</th><th>Total Delay (Menit)</th></tr>
     {% for nama, total in summary.items() %}
@@ -215,11 +215,10 @@
   </table>
 
   <div class="summary-box">
-    <b>🧮 Total Delay Semua Maskapai:</b> {{ total_delay_semua or 0 }} menit
+    <b>Total Delay Semua Maskapai:</b> {{ total_delay_semua or 0 }} menit
   </div>
 
- <!-- Tabel Preview Penerbangan -->
-  <h2>📋 Daftar Penerbangan (Preview)</h2>
+  <h2>Daftar Penerbangan (Preview)</h2>
   <table id="previewTable">
     <thead>
       <tr>
@@ -247,7 +246,6 @@
     </tbody>
   </table>
 
-  <!-- Tambahkan CDN jQuery dan DataTables -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -259,10 +257,10 @@
         lengthChange: false,
         language: {
           paginate: {
-            next: '➡️',
-            previous: '⬅️'
+            next: '>',
+            previous: '<'
           },
-          search: "🔍 Cari:",
+          search: "Cari:",
           info: "Menampilkan _START_ - _END_ dari _TOTAL_ penerbangan",
           infoEmpty: "Tidak ada data tersedia",
           zeroRecords: "Tidak ditemukan hasil"
