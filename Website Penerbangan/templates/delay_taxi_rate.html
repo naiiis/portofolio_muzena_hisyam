@@ -19,26 +19,26 @@
   </style>
 </head>
 <body>
-  <h1>🛫 Delay Rate Taxi-out (Pushback ➝ ATD)</h1>
+  <h1>Delay Rate Taxi-out (Pushback ➝ ATD)</h1>
 
   <form method="get">
     <div class="form-group">
-      <label><b>📅 Bulan:</b></label>
+      <label><b>Bulan:</b></label>
       <select name="bulan">
-        <option value="">-- Semua Bulan --</option>
+        <option value="">Semua Bulan</option>
         {% for b in available_months %}
           <option value="{{ b }}" {% if b == selected_month %}selected{% endif %}>{{ b }}</option>
         {% endfor %}
       </select>
 
-      <label><b>🌐 Jenis:</b></label>
+      <label><b>Jenis:</b></label>
       <select name="jenis">
         <option value="" {% if jenis == "" %}selected{% endif %}>Gabungan</option>
         <option value="domestik" {% if jenis == "domestik" %}selected{% endif %}>Domestik</option>
         <option value="internasional" {% if jenis == "internasional" %}selected{% endif %}>Internasional</option>
       </select>
 
-      <label><b>✈️ Maskapai:</b></label>
+      <label><b>Maskapai:</b></label>
       <select name="icao">
         <option value="">Semua</option>
         {% for icao, nama in available_icaos %}
@@ -46,7 +46,7 @@
         {% endfor %}
       </select>
 
-      <label><b>📍 Tujuan:</b></label>
+      <label><b>Tujuan:</b></label>
       <select name="tujuan">
         <option value="">Semua</option>
         {% for icao, nama in available_destinations %}
