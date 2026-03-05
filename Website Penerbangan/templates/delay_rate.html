@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Delay Stats</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <style>
+    body { font-family: sans-serif; background: #f4f4f4; padding: 2rem; }
+    h1, h2 { margin-top: 2rem; }
+    table { border-collapse: collapse; margin-top: 1rem; background: white; width: 100%; }
+    th, td { padding: 0.5rem; border: 1px solid #ccc; text-align: center; }
+    th { background: #eee; }
+    .summary-box {
+      background: #fff; margin-top: 2rem; padding: 1rem 2rem;
+      font-size: 1.2rem; border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .summary-row {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .summary-tile {
+      flex: 1;
+      min-width: 200px;
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>📊 Statistik Delay Maskapai dari Surabaya</h1>
+
+  <form method="get">
+    <label><b>📅 Bulan:</b></label>
+    <select name="bulan" onchange="this.form.submit()">
+      <option value="">-- Semua Bulan --</option>
+      {% for b in available_months %}
+        <option value="{{ b }}" {% if b == selected_month %}selected{% endif %}>{{ b }}</option>
+      {% endfor %}
+    </select>
+
+    <label><b>📈 Tampilan:</b></label>
+    <select name="view" onchange="this.form.submit()">
+      <option value="harian" {% if view == "harian" %}selected{% endif %}>Harian</option>
+      <option value="mingguan" {% if view == "mingguan" %}selected{% endif %}>Mingguan</option>
+    </select>
+
+    <label><b>🌐 Jenis Penerbangan:</b></label>
+    <select name="jenis" onchange="this.form.submit()">
+      <option value="" {% if jenis == "" %}selected{% endif %}>Gabungan</option>
+      <option value="domestik" {% if jenis == "domestik" %}selected{% endif %}>Domestik</option>
+      <option value="internasional" {% if jenis == "internasional" %}selected{% endif %}>Internasional</option>
+    </select>
+
+    <label><b>✈️ Maskapai:</b></label>
+    <select name="icao" onchange="this.form.submit()">
+      <option value="">Semua</option>
+      {% for icao, nama in available_icaos %}
+        <option value="{{ icao }}" {% if icao == selected_icao %}selected{% endif %}>{{ nama }}</option>
+      {% endfor %}
+    </select>
+
+    <label><b>📍 Tujuan:</b></label>
+    <select name="tujuan" onchange="this.form.submit()">
+      <option value="">Semua</option>
+      {% for icao, nama in available_destinations %}
+        <option value="{{ icao }}" {% if icao == selected_destination %}selected{% endif %}>{{ nama }}</option>
+      {% endfor %}
+    </select>
+  </form>
+
+  <div class="summary-row">
+    <div class="summary-tile" style="background:#d4edda; color:#155724">
+      ✅ Ontime<br>
+      {{ summary_box.ontime.jumlah }} flight<br>
+      ({{ summary_box.ontime.persen }}%)
+    </div>
+    <div class="summary-tile" style="background:#fff3cd; color:#856404">
+      ⏱️ Delay 1<br>
+      {{ summary_box.delay1.jumlah }} flight<br>
+      ({{ summary_box.delay1.persen }}%)
+    </div>
+    <div class="summary-tile" style="background:#f8d7da; color:#721c24">
+      ❗ Delay 2<br>
+      {{ summary_box.delay2.jumlah }} flight<br>
+      ({{ summary_box.delay2.persen }}%)
+    </div>
+  </div>
+
+  <h2>📉 Grafik Total Menit Delay</h2>
+  <label for="delay-view-mode"><b>👁️ Tampilan Grafik:</b></label>
+  <select id="delay-view-mode" onchange="updateDelayChart()">
+    <option value="total">Total Semua Maskapai</option>
+    <option value="per_maskapai">Per Maskapai</option>
+  </select>
+
+  <canvas id="chartLineDelay" height="100"></canvas>
+  <script>
+    const allData = {{ timeline | tojson }};
+    const dateLabels = {{ date_labels | tojson }};
+    let chartDelay;
+
+    function getRandomColor() {
+      return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+    }
+
+    function generateDataset(mode) {
+      const datasets = [];
+      if (mode === "total") {
+        if (allData["__TOTAL__"]) {
+          datasets.push({
+            label: "Total Menit Delay",
+            data: allData["__TOTAL__"]["data"],
+            borderColor: "#007bff",
+            fill: false
+          });
+        }
+      } else {
+        for (const [label, info] of Object.entries(allData)) {
+          if (label.startsWith("__")) continue;
+          datasets.push({
+            label: label,
+            data: info.data,
+            borderColor: getRandomColor(),
+            fill: false
+          });
+        }
+      }
+      return datasets;
+    }
+
+    function updateDelayChart() {
+      const mode = document.getElementById("delay-view-mode").value;
+      chartDelay.data = {
+        labels: dateLabels,
+        datasets: generateDataset(mode)
+      };
+      chartDelay.update();
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const ctx = document.getElementById("chartLineDelay").getContext("2d");
+      chartDelay = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: dateLabels,
+          datasets: generateDataset("total")
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: "top" },
+            title: { display: true, text: "Total Menit Delay per {{ view }}" }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: "Menit Delay" }
+            }
+          }
+        }
+      });
+    });
+  </script>
+
+  <h2>📊 Grafik Jumlah Penerbangan per Kategori Delay</h2>
+  <canvas id="chartDelayKategori" height="100"></canvas>
+  <script>
+    const kategoriLabels = {{ chart_data.keys() | list | tojson }};
+    const ontime = {{ chart_data.values() | map(attribute="ontime") | list | tojson }};
+    const delay1 = {{ chart_data.values() | map(attribute="delay1") | list | tojson }};
+    const delay2 = {{ chart_data.values() | map(attribute="delay2") | list | tojson }};
+
+    new Chart(document.getElementById("chartDelayKategori"), {
+      type: 'bar',
+      data: {
+        labels: kategoriLabels,
+        datasets: [
+          { label: "Ontime (≤15m)", data: ontime, backgroundColor: "#4CAF50" },
+          { label: "Delay 1 (16–30m)", data: delay1, backgroundColor: "#FFA500" },
+          { label: "Delay 2 (≥31m)", data: delay2, backgroundColor: "#FF4444" }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "top" },
+          title: { display: true, text: "Jumlah Penerbangan per Kategori Delay" }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: "Jumlah Penerbangan" }
+          }
+        }
+      }
+    });
+  </script>
+
+  <h2>🧾 Total Delay per Maskapai (Menit)</h2>
+  <table>
+    <tr><th>Nama Maskapai</th><th>Total Delay (Menit)</th></tr>
+    {% for nama, total in summary.items() %}
+    <tr><td>{{ nama }}</td><td>{{ total }}</td></tr>
+    {% endfor %}
+    {% if not summary %}<tr><td colspan="2">Data tidak tersedia</td></tr>{% endif %}
+  </table>
+
+  <div class="summary-box">
+    <b>🧮 Total Delay Semua Maskapai:</b> {{ total_delay_semua or 0 }} menit
+  </div>
+
+ <!-- Tabel Preview Penerbangan -->
+  <h2>📋 Daftar Penerbangan (Preview)</h2>
+  <table id="previewTable">
+    <thead>
+      <tr>
+        <th>Tanggal</th>
+        <th>Flight</th>
+        <th>Maskapai</th>
+        <th>ETD</th>
+        <th>Pushback</th>
+        <th>Delay (Menit)</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in preview_rows %}
+      <tr>
+        <td>{{ row.tanggal }}</td>
+        <td>{{ row.flight_number }}</td>
+        <td>{{ row.maskapai }}</td>
+        <td>{{ row.etd }}</td>
+        <td>{{ row.pushback }}</td>
+        <td>{{ row.delay_minutes }}</td>
+        <td>{{ row.keterangan }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Tambahkan CDN jQuery dan DataTables -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+  <script>
+    $(document).ready(function () {
+      $('#previewTable').DataTable({
+        pageLength: 10,
+        lengthChange: false,
+        language: {
+          paginate: {
+            next: '➡️',
+            previous: '⬅️'
+          },
+          search: "🔍 Cari:",
+          info: "Menampilkan _START_ - _END_ dari _TOTAL_ penerbangan",
+          infoEmpty: "Tidak ada data tersedia",
+          zeroRecords: "Tidak ditemukan hasil"
+        }
+      });
+    });
+  </script>
+
+
+</body>
+</html>

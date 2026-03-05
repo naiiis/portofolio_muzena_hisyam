@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Perbandingan Penerbangan</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f4f4f4;
+      padding: 2rem;
+      color: #333;
+    }
+    h2, h3 {
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+    }
+    form {
+      margin-bottom: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      background: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    input, select {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+    }
+    .summary-row {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .summary-tile {
+      flex: 1;
+      min-width: 200px;
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    canvas {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      margin-bottom: 2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2rem;
+      background: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+    th {
+      background: #f0f0f0;
+    }
+    tr:hover {
+      background: #fafafa;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>📊 Perbandingan Penerbangan</h2>
+
+  <!-- Filter Form -->
+  <form method="get">
+    <label>📅 Start Date:
+      <input type="date" name="start" value="{{ start }}" onchange="this.form.submit()">
+    </label>
+    <label>📅 End Date:
+      <input type="date" name="end" value="{{ end }}" onchange="this.form.submit()">
+    </label>
+    <label>✈️ Maskapai:
+      <select name="airline" onchange="this.form.submit()">
+        <option value="">Semua</option>
+        {% for name in airline_names %}
+          <option value="{{ name }}" {% if name == selected_airline %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>🧭 Jenis:
+      <select name="jenis" id="jenisSelect" onchange="handleJenisChange()">
+        <option value="semua" {% if selected_jenis == 'semua' %}selected{% endif %}>Semua</option>
+        <option value="domestik" {% if selected_jenis == 'domestik' %}selected{% endif %}>Domestik</option>
+        <option value="internasional" {% if selected_jenis == 'internasional' %}selected{% endif %}>Internasional</option>
+      </select>
+    </label>
+
+    <label>🛫 Departure:
+      <select name="departure" id="departureSelect" onchange="this.form.submit()">
+        <option value="">Semua</option>
+        {% for nama_lokasi, icao in unique_departures %}
+          <option value="{{ icao }}" {% if icao == selected_departure %}selected{% endif %}>{{ nama_lokasi }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>🛬 Arrival:
+      <select name="arrival" onchange="this.form.submit()">
+        <option value="">Semua</option>
+        {% for nama_lokasi, icao in unique_arrivals %}
+          <option value="{{ icao }}" {% if icao == selected_arrival %}selected{% endif %}>{{ nama_lokasi }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </form>
+
+  <!-- Summary Tiles -->
+  <div class="summary-row">
+    <div class="summary-tile" style="background:#d4edda; color:#155724">
+      📅 Total Planning<br>
+      {{ total_plan }} flight
+    </div>
+    <div class="summary-tile" style="background:#fff3cd; color:#856404">
+      📈 Total Realisasi<br>
+      {{ total_real }} flight
+    </div>
+  </div>
+
+  <!-- Pie Chart -->
+  <h3>🥧 Perbandingan Total Planning vs Realisasi</h3>
+  <div style="max-width: 320px; margin-bottom: 2rem;">
+    <canvas id="pieChart" width="300" height="300"></canvas>
+  </div>
+
+  <!-- Bar Chart -->
+  <h3>📊 Grafik Jumlah Penerbangan per Maskapai</h3>
+  <canvas id="barChart" height="90"></canvas>
+
+  <!-- Line Chart -->
+  <h3>📈 Grafik Penerbangan Harian</h3>
+  <div style="margin-bottom: 1rem;">
+    <button id="toggleButton" onclick="toggleRealization()" style="padding: 0.5rem 1rem; background:#007bff; color:white; border:none; border-radius:5px; cursor:pointer;">
+      👁️ Tampilkan Semua Realisasi Maskapai
+    </button>
+  </div>
+  <canvas id="lineChart" height="80"></canvas>
+
+  <!-- Tabel -->
+  <h3>📋 Tabel Ringkasan Maskapai</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Maskapai</th>
+        <th>Planning</th>
+        <th>Realisasi</th>
+        <th>Kesesuaian (%)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for name, plan, real, percent in rekap_data %}
+      <tr>
+        <td>{{ name }}</td>
+        <td>{{ plan }}</td>
+        <td>{{ real }}</td>
+        <td>{{ percent }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+<script>
+  const dateLabels = {{ date_labels | safe }};
+  const timeline = {{ timeline | safe }};
+  const selectedAirline = "{{ selected_airline or '__TOTAL__' }}";
+
+  const lineCtx = document.getElementById('lineChart').getContext('2d');
+  const defaultData = timeline[selectedAirline] || { planning: [], realisasi: [] };
+
+  let showingAll = false;
+  const toggleBtn = document.getElementById('toggleButton');
+
+  let lineChart = new Chart(lineCtx, {
+    type: 'line',
+    data: {
+      labels: dateLabels,
+      datasets: [
+        {
+          label: "Planning",
+          data: defaultData.planning,
+          borderColor: "blue",
+          fill: false
+        },
+        {
+          label: "Realisasi",
+          data: defaultData.realisasi,
+          borderColor: "red",
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'top' } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+
+  function toggleRealization() {
+    showingAll = !showingAll;
+
+    if (showingAll) {
+      const realData = timeline["__ALL_REAL__"];
+      if (!realData) return;
+
+      const newDatasets = Object.entries(realData).map(([name, values]) => ({
+        label: name,
+        data: values,
+        borderColor: getRandomColor(),
+        fill: false
+      }));
+
+      lineChart.data.datasets = newDatasets;
+      toggleBtn.innerText = "🔙 Kembali ke Planning vs Realisasi";
+    } else {
+      lineChart.data.datasets = [
+        {
+          label: "Planning",
+          data: defaultData.planning,
+          borderColor: "blue",
+          fill: false
+        },
+        {
+          label: "Realisasi",
+          data: defaultData.realisasi,
+          borderColor: "red",
+          fill: false
+        }
+      ];
+      toggleBtn.innerText = "👁️ Tampilkan Semua Realisasi Maskapai";
+    }
+
+    lineChart.update();
+  }
+
+  function getRandomColor() {
+    const r = Math.floor(Math.random() * 200);
+    const g = Math.floor(Math.random() * 200);
+    const b = Math.floor(Math.random() * 200);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  // Pie Chart
+  const pieCtx = document.getElementById('pieChart').getContext('2d');
+  new Chart(pieCtx, {
+    type: 'pie',
+    data: {
+      labels: ['Planning', 'Realisasi'],
+      datasets: [{
+        label: 'Total Flight',
+        data: [{{ total_plan }}, {{ total_real }}],
+        backgroundColor: ['#36A2EB', '#FF6384'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const value = context.parsed;
+              const percentage = ((value / total) * 100).toFixed(2);
+              return `${context.label}: ${value} (${percentage}%)`;
+            }
+          }
+        },
+        legend: { position: 'top' }
+      }
+    }
+  });
+
+  // Bar Chart
+  const barCtx = document.getElementById('barChart').getContext('2d');
+  new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels: {{ rekap_data | map(attribute=0) | list | tojson }},
+      datasets: [
+        {
+          label: 'Planning',
+          data: {{ rekap_data | map(attribute=1) | list | tojson }},
+          backgroundColor: 'rgba(54, 162, 235, 0.7)'
+        },
+        {
+          label: 'Realisasi',
+          data: {{ rekap_data | map(attribute=2) | list | tojson }},
+          backgroundColor: 'rgba(255, 99, 132, 0.7)'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'top' } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+</script>
+
+</body>
+</html>
